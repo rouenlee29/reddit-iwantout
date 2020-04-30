@@ -2,6 +2,8 @@ from csv import writer
 import csv
 import datetime
 import re
+import pycountry
+from collections import Counter 
 
 def save_outputs_from_generator(output_csv, gen_obj, mode = 'a+', newline='', encoding='utf-8'):
     """
@@ -41,8 +43,6 @@ def get_data(reddit, limit, subreddit = 'IWantOut'):
     except:
         pass
     
- 
-
     
 def convert_date(dt):
     """
@@ -55,32 +55,84 @@ def convert_date(dt):
         return date.strftime("%Y-%m-%d")
     except: 
         return None
+
+def most_frequent(List): 
+    occurence_count = Counter(List) 
+    return occurence_count.most_common(1)[0][0] 
+
+def find_country_using_fuzzy(List):
+
+    """
+    guess country from each word in List
+    e.g if List = ['new','zealand'],
+    search_fuzzy will guess 'new' to be 'new zealand' or 'new caledonia'
+    search_fuzzy will guess 'zealand' to be 'new zealand'
+    we take the most common guess, i.e 'new zealand'
+    """
+
+    country_name = None
+    candidates = []
+
+    for s in List:
+        if s == "uk":
+            country_name =  "United Kingdom"
+            break
+        elif s == "us" :
+            country_name = "United States"
+
+        elif s == "eu" : 
+            # search_fuzzy returns "reunion" for "eu", and we want to prevent this
+            # because it means european union 
+            country_name = "European Union"
+        else: 
+            try:
+                guesses = pycountry.countries.search_fuzzy(s)
+                candidates += [g.name for g in guesses]
+            except:
+                pass
+
+    if candidates != []:
+        country_name = most_frequent(candidates)
+
+    return country_name
+    
+def find_job(List):
+    jobs = []
+    for s in List:
+        try:
+            _ = pycountry.countries.search_fuzzy(s)
+        except: # if fails
+            jobs.append(s)
+    return " ".join(jobs)
+
+def extract_title(title):
+    title = title.lower()
+    
+    # Age&Sex: get contents that contains 2 numbers followed by an alphabet 
+    identity = re.findall(r"[0-9][0-9][a-z]", title)[0].strip()
+    
+    # get whatever is after Age&Sex 
+    job_and_countries = " ".join(title.split(identity)[1:])
+    
+    # get whatever is after "->"
+    destination = job_and_countries.split("->")[1].strip()
+    destination = re.sub('[^a-zA-Z]', " ", destination)
+
+    
+    # get whatever is before "->"
+    job_and_origin = job_and_countries.split("->")[0].strip()
+    job_and_origin = job_and_origin.split(" ") # convert to list
+    
+    origin = find_country_using_fuzzy(job_and_origin)
+    job = find_job(job_and_origin)
+
+    return identity, origin, destination,job
+
     
 def extract_data_from_raw(raw_csv,encoding='utf-8'):
     """
     reads and transforms raw data 
     """
-    
-    
-    def extract_title(title):
-        """
-        Extact identity, origin, destination from post 
-
-        """
-        try:
-            title = title.lower()
-            identity = re.findall(r"[0-9][0-9][a-z]", title)[0].strip()
-            job_and_countries = " ".join(title.split(identity)[1:])
-            countries = re.findall(r"[a-z]+[\s]?->[\s]?.*", job_and_countries)
-            job = " ".join(job_and_countries.split(countries[0])).strip()
-            origin = countries[0].split("->")[0].strip()
-            destination = countries[0].split("->")[1].strip()
-
-            return identity, origin, destination,job
-
-        except:
-
-            return None, None, None, None
     
     first_row = True
     
