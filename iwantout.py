@@ -4,6 +4,10 @@ import datetime
 import re
 import pycountry
 from collections import Counter 
+import pycountry_convert as pc
+from country_alpha2_to_continent import convert_country_alpha2_to_continent
+
+# GET DATA FROM REDDIT 
 
 def save_outputs_from_generator(output_csv, gen_obj, mode = 'a+', newline='', encoding='utf-8'):
     """
@@ -23,7 +27,7 @@ def save_outputs_from_generator(output_csv, gen_obj, mode = 'a+', newline='', en
     
     print(f"wrote to {output_csv}")
     
-def get_data(reddit, limit, subreddit = 'IWantOut'):
+def get_data(reddit, limit, subreddit = 'IWantOut', created_cutoff=0):
     
     """
     Get relevant data from reddit API
@@ -38,12 +42,14 @@ def get_data(reddit, limit, subreddit = 'IWantOut'):
             # get contents of post 
             submission = reddit.submission(url=post.url)
             contents = submission.selftext
-
-            yield [post.id, post.title,post.created, post.num_comments, post.url, contents]
+            
+            if post.created > created_cutoff:
+                yield [post.id, post.title,post.created, post.num_comments, post.url, contents]
     except:
         pass
     
-    
+# PROCESS RAW DATA
+
 def convert_date(dt):
     """
     convert date from integer to year/month/date format 
@@ -82,8 +88,14 @@ def find_country_using_fuzzy(List):
 
         elif s == "eu" : 
             # search_fuzzy returns "reunion" for "eu", and we want to prevent this
-            # because it means european union 
-            country_name = "European Union"
+            # because it means european union and we want to categorise it as a region
+            pass
+
+        elif len(s) == 1:
+            # one letter words are unlikely to be countries 
+            # but search_fuzzy will try to guess countries from it 
+            pass
+
         else: 
             try:
                 guesses = pycountry.countries.search_fuzzy(s)
@@ -116,22 +128,23 @@ def extract_title(title):
     
     # get whatever is after "->"
     destination = job_and_countries.split("->")[1].strip()
-    destination = re.sub('[^a-zA-Z]', " ", destination)
+    dest_countries, dest_regions = get_destination(destination)
 
-    
     # get whatever is before "->"
-    job_and_origin = job_and_countries.split("->")[0].strip()
-    job_and_origin = job_and_origin.split(" ") # convert to list
-    
-    origin = find_country_using_fuzzy(job_and_origin)
-    job = find_job(job_and_origin)
+    job_and_origin_str = job_and_countries.split("->")[0].strip()
+    job_and_origin_list = job_and_origin_str.split(" ") 
+    origin_country = find_country_using_fuzzy(job_and_origin_list)
+    origin_region = get_destination_region([origin_country], job_and_origin_str)
 
-    return identity, origin, destination,job
+    job = find_job(job_and_origin_list)
+
+    return identity, origin_country, origin_region, dest_countries, dest_regions,job
 
     
-def extract_data_from_raw(raw_csv,encoding='utf-8'):
+def load_and_transform_raw_data(raw_csv,encoding='utf-8'):
     """
-    reads and transforms raw data 
+    reads row-by-row from `raw_csv`, transforms the row
+    returns a list containing transformed data 
     """
     
     first_row = True
@@ -141,7 +154,7 @@ def extract_data_from_raw(raw_csv,encoding='utf-8'):
         for row in readCSV:
             if first_row:
                 first_row = False
-                yield ["index","identity", "origin", "destination","job","created_dt", "contents"]
+                yield ["index","identity", "origin_country", "origin_region", "destination_countries", "destination_regions", "job","created_dt", "contents"]
                 
             else:
                 try:
@@ -152,10 +165,80 @@ def extract_data_from_raw(raw_csv,encoding='utf-8'):
                         created = row[2]
                         contents = row[5]
 
-                        identity, origin, destination,job = extract_title(title)
+                        identity, origin_country, origin_region, dest_countries, dest_regions,job = extract_title(title)
                         created_dt = convert_date(created)
 
-                        yield [index,identity, origin, destination,job,created_dt,contents]
+                        yield [index,identity, origin_country, origin_region, dest_countries, dest_regions,job,created_dt,contents]
 
                 except: 
                     pass
+
+def map_country_to_continent(String):
+    """
+    maps country name to continent name
+    returns `None` if no match is found 
+    """
+    try:
+        # if it is a country name, map to continent 
+        country_code = pc.country_name_to_country_alpha2(String, cn_name_format="lower")
+        continent_name = convert_country_alpha2_to_continent(country_code)
+    except:
+        continent_name = None
+    return continent_name
+    
+    
+
+def get_destination_region(dest_countries_list, raw_dest_str):
+    
+    """
+    `region` can mean continent (e.g Asia, Europe) or subregion (European Union, Scandinavia)
+    """
+    dest_region = []
+    
+    # see if any continents are contained in raw string 
+    region = ["africa","antarctica","asia","europe","north america","south america","oceania", "scandinavia"]
+    dest_region += [c if c in raw_dest_str else None for c in region]
+    
+    if ("eu," in raw_dest_str) or (",eu" in raw_dest_str):
+        dest_region += ['european union']
+    
+    # map countries to continens 
+    if dest_countries_list != []:
+        dest_region += [map_country_to_continent(d) for d in dest_countries_list]
+        
+    # take unique values
+    dest_region = list(set(dest_region))
+    
+    if None in dest_region:
+        dest_region.remove(None)
+    
+    return dest_region
+
+def get_destination(String):
+    
+    """
+    Assumes countries are separated by symbols or text
+    e.g. "us/uk", "australia or zimbabwe"
+    """
+    
+    String = String.lower()
+    String = re.sub(r"( or |\\|/| and |\|)", ',', String)
+    
+    country_list = String.split(",")
+    dest = []
+    region = []
+    
+    #print(country_list)
+    for c in country_list:
+        
+        if ("?" in c) or ("anywhere" in c) or (" x " in c):
+            dest.append("anywhere")
+
+        else:
+            fuzzy_result = find_country_using_fuzzy([c])
+            if fuzzy_result is not None:
+                dest.append(fuzzy_result)
+    #print(String)
+    dest_region = get_destination_region(dest, String)
+            
+    return dest, dest_region
