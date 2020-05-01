@@ -103,6 +103,7 @@ def find_country_using_fuzzy(List):
             except:
                 pass
 
+    # get the one most common country 
     if candidates != []:
         country_name = most_frequent(candidates)
 
@@ -141,37 +142,40 @@ def extract_title(title):
     return identity, origin_country, origin_region, dest_countries, dest_regions,job
 
     
-def load_and_transform_raw_data(raw_csv,encoding='utf-8'):
+def load_and_transform_raw_data(raw_csv_list,encoding='utf-8'):
     """
-    reads row-by-row from `raw_csv`, transforms the row
-    returns a list containing transformed data 
+    got through each csv file in `raw_csv_list`
+    reads the csv one row at a time.
+    transforms a row and returns a list containing transformed data from the row 
     """
     
     first_row = True
     
-    with open(raw_csv,encoding=encoding) as csvfile:
-        readCSV = csv.reader(csvfile, delimiter=',')
-        for row in readCSV:
-            if first_row:
-                first_row = False
-                yield ["index","identity", "origin_country", "origin_region", "destination_countries", "destination_regions", "job","created_dt", "contents"]
-                
-            else:
-                try:
-                    index = row[0]
-                    title = row[1]
+    for raw_csv in raw_csv_list:
+        with open(raw_csv,encoding=encoding) as csvfile:
+            readCSV = csv.reader(csvfile, delimiter=',')
+
+            for row in readCSV:
+                if first_row:
+                    first_row = False
+                    yield ["index","identity", "origin_country", "origin_region", "destination_countries", "destination_regions", "job","created_dt", "contents"]
                     
-                    if "wantout" in title.lower():
-                        created = row[2]
-                        contents = row[5]
+                else:
+                    try:
+                        index = row[0]
+                        title = row[1]
+                        
+                        if "wantout" in title.lower():
+                            created = row[2]
+                            contents = row[5]
 
-                        identity, origin_country, origin_region, dest_countries, dest_regions,job = extract_title(title)
-                        created_dt = convert_date(created)
+                            identity, origin_country, origin_region, dest_countries, dest_regions,job = extract_title(title)
+                            created_dt = convert_date(created)
 
-                        yield [index,identity, origin_country, origin_region, dest_countries, dest_regions,job,created_dt,contents]
+                            yield [index,identity, origin_country, origin_region, dest_countries, dest_regions,job,created_dt,contents]
 
-                except: 
-                    pass
+                    except: 
+                        pass
 
 def map_country_to_continent(String):
     """
