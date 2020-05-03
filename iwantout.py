@@ -84,6 +84,8 @@ def find_country_using_fuzzy(List):
     search_fuzzy will guess 'new' to be 'new zealand' or 'new caledonia'
     search_fuzzy will guess 'zealand' to be 'new zealand'
     we take the most common guess, i.e 'new zealand'
+
+    we assunme List contains only one country 
     """
     # words that will belong to a continent and not a country
     
@@ -97,21 +99,18 @@ def find_country_using_fuzzy(List):
             break
         elif s == "us" :
             country_name = "United States"
-
+            break
         elif s == "eu" : 
             # search_fuzzy returns "reunion" for "eu", and we want to prevent this
             # because it means european union and we want to categorise it as a region
-            pass
-
+            break
         elif len(s) == 1:
             # one letter words are unlikely to be countries 
             # but search_fuzzy will try to guess countries from it 
-            pass
-
+            break
         # check if `s` contains any words in continent_words
         elif check_continent_words(s) == True:
-            pass
-
+            break
         else: 
             try:
                 guesses = pycountry.countries.search_fuzzy(s)
@@ -188,7 +187,9 @@ def load_and_transform_raw_data(raw_csv_list,encoding='utf-8'):
                             identity, origin_country, origin_region, dest_countries, dest_regions,job = extract_title(title)
                             created_dt = convert_date(created)
 
-                            yield [index,identity, origin_country, origin_region, dest_countries, dest_regions,job,created_dt,contents]
+                            L = len(dest_countries)
+                            for i in range(L):
+                                yield [index,identity, origin_country, origin_region, dest_countries[i], dest_regions[i], job, created_dt, contents]
 
                     except: 
                         pass
@@ -256,6 +257,7 @@ def get_destination(String):
     returns a list of countries identified from fuzzy search 
     """
     
+    # split string, such that one country = one item in List 
     String = String.lower()
     String = re.sub(r"( or |\\|/| and |\|)", ',', String)
     List = String.split(",")
