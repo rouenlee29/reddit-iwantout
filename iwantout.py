@@ -173,7 +173,7 @@ def load_and_transform_raw_data(raw_csv_list,encoding='utf-8'):
             for row in readCSV:
                 if first_row:
                     first_row = False
-                    yield ["index","identity", "origin_country", "origin_region", "destination_countries", "destination_regions", "job","created_dt", "contents"]
+                    yield ["index","identity", "origin_country", "origin_region", "destination_country", "destination_region", "job","created_dt", "contents"]
                     
                 else:
                     try:
