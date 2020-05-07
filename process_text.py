@@ -39,11 +39,11 @@ def my_tokeniser(text):
             tokenised.append(s.strip())
     return tokenised
 
-def spacy_tokeniser(text):
+def spacy_tokeniser(String):
   
-    text = text.lower().strip()
+    String = String.lower().strip()
     processed_tokens = []
-    tokens = nlp(text)
+    tokens = nlp(String)
     for token in tokens:
         if (token.is_stop or token.is_punct):
             continue
@@ -55,3 +55,15 @@ def spacy_tokeniser(text):
 # taken from fast.ai
 re_tok = re.compile(f'([{string.punctuation}“”¨«»®´·º½¾¿¡§£₤‘’])')
 def tokenize(s): return re_tok.sub(r' \1 ', s).split()
+
+# combine cleaning functions into one 
+def clean_my_string(String):
+    tokenized = tokenize(String)
+    result = "" 
+    for t in tokenized:
+        t = remove_special_characters(t)
+        if len(t.strip()) > 1: 
+            result += t + " "
+
+    cleaned = spacy_tokeniser(result)
+    return cleaned
