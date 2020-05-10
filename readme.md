@@ -15,7 +15,7 @@ To run in the following order:
 ### Python files 
 
 - `iwantout.py` : Functions to load, transform and analyse data 
-- `contractions.py` : Function to expand contractions in words (I'm -> I am)
+- `contractions.py` : Function to expand contractions in words (I'm -> I am). Taken from [here](https://github.com/Apress/practical-ml-w-python/blob/master/Code_Ch%2007/Code/contractions.py). Full credits to author. 
 - `country_alpha2_to_continent.py` : Map country code to continent name  
 - `process_text.py` : Functions to clean text 
 - `sankey.py` : Code to generate sankey diagram.
