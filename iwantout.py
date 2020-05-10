@@ -284,7 +284,7 @@ def get_destination(String):
     return dest_country_list, dest_region_list
 
 
-# expldoe function below is...
+# explode function below is...
 # taken from https://stackoverflow.com/questions/45846765/efficient-way-to-unnest-explode-multiple-list-columns-in-a-pandas-dataframe
 def explode(df, lst_cols, fill_value=''):
     # make sure `lst_cols` is a list
