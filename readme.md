@@ -1,4 +1,6 @@
-## TODO: add goal
+## Overview
+
+Scrape posts from [IWantOut](https://www.reddit.com/r/IWantOut/), a reddit forum containing posts of people who would like to move to another country. Luckily for me, most posts follows the syntax "[IWantOut] < age >< gender > < occupation > < origin country > -> < destination country >". My goal is to extract age, gender and country information from the post titles. 
 
 ## Run notebooks to scrape, transform and analyse data 
 
@@ -16,7 +18,7 @@ To run in the following order:
 
 - `iwantout.py` : Functions to load, transform and analyse data 
 - `contractions.py` : Function to expand contractions in words (I'm -> I am). Taken from [here](https://github.com/Apress/practical-ml-w-python/blob/master/Code_Ch%2007/Code/contractions.py). Full credits to author. 
-- `country_alpha2_to_continent.py` : Map country code to continent name  
+- `country_alpha2_to_continent.py` : Map country code to continent name. Taken from [here](https://raw.githubusercontent.com/jefftune/pycountry-convert/master/pycountry_convert/country_alpha2_to_continent.py), full credits to author. 
 - `process_text.py` : Functions to clean text 
 - `sankey.py` : Code to generate sankey diagram.
 
